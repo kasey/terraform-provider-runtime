@@ -2,8 +2,8 @@
 SHELL := /bin/bash
 
 # Options
-ORG_NAME=crossplanebook
-PROVIDER_NAME=provider-template
+ORG_NAME=crossplane
+PROVIDER_NAME=provider-terraform-plugin
 
 # Package setup
 PACKAGE=package

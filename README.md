@@ -1,17 +1,12 @@
-# provider-template
+# provider-terraform-plugin
 
-`provider-template` is a minimal [Crossplane](https://crossplane.io/) Provider
-that is meant to be used as a template for implementing new Providers. It comes
-with the following features that are meant to be refactored:
 
-- A `Provider` resource type that only points to a credentials `Secret`.
-- A `MyType` resource type that serves as an example managed resource.
-- A managed resource controller that reconciles `MyType` objects and simply
-  prints their configuration in its `Observe` method.
+`provider-terraform-plugin` specifies a set of interfaces and dependency injection points for a code-generated provider to use to offer CRUD
+methods to fulfill the crossplane ExternalClient API.
 
 ## Install
 
-If you would like to install `provider-template` without modifications create
+If you would like to install `provider-terraform-plugin` without modifications create
 the following `ClusterPackageInstall` in a Kubernetes cluster where Crossplane is
 installed:
 
@@ -19,15 +14,15 @@ installed:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: template
+  name: terraform-plugin
 ---
 apiVersion: packages.crossplane.io/v1alpha1
 kind: ClusterPackageInstall
 metadata:
-  name: provider-template
-  namespace: template
+  name: provider-terraform-plugin
+  namespace: terraform-plugin
 spec:
-  package: "crossplanebook/provider-template:latest"
+  package: "crossplane/provider-terraform-plugin:latest"
 ```
 
 ## Developing
