@@ -10,7 +10,7 @@ import (
 // Update syncs with an existing resource and modifies mutable values
 func Update(p *client.Provider, r *registry.Registry, res resource.Managed) (resource.Managed, error) {
 	gvk := res.GetObjectKind().GroupVersionKind()
-	s, err := SchemaForGVK(gvk, p)
+	s, err := SchemaForGVK(gvk, p, r)
 	if err != nil {
 		return nil, err
 	}

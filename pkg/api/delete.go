@@ -13,7 +13,7 @@ import (
 // to act on a Nil planned state.
 func Delete(p *client.Provider, r *registry.Registry, res resource.Managed) error {
 	gvk := res.GetObjectKind().GroupVersionKind()
-	s, err := SchemaForGVK(gvk, p)
+	s, err := SchemaForGVK(gvk, p, r)
 	if err != nil {
 		return err
 	}

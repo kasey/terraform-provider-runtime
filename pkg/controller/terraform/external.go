@@ -70,15 +70,17 @@ func (c *External) Observe(ctx context.Context, kres resource.Managed) (managed.
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	if diff.DifferentAtProvider() {
-		merged, err := diff.Merged()
-		if err != nil {
-			return managed.ExternalObservation{}, err
+	/*
+		if diff.DifferentAtProvider() {
+			merged, err := diff.Merged()
+			if err != nil {
+				return managed.ExternalObservation{}, err
+			}
+			if err := c.KubeClient.Update(ctx, merged); err != nil {
+				return managed.ExternalObservation{}, err
+			}
 		}
-		if err := c.KubeClient.Update(ctx, merged); err != nil {
-			return managed.ExternalObservation{}, err
-		}
-	}
+	*/
 
 	return managed.ExternalObservation{
 		ResourceExists:   true,
@@ -92,6 +94,35 @@ func (c *External) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	c.logger.Debug(fmt.Sprintf("terraform.External.Create: %s", gvk.String()))
 	if c.Callbacks.CreateFn != nil {
 		return c.Callbacks.Create(ctx, mg)
+	}
+
+	created, err := api.Create(c.provider, c.Registry, mg)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+
+	/*
+		if err := c.KubeClient.Update(ctx, created); err != nil {
+			return managed.ExternalCreation{}, err
+		}
+	*/
+
+	diffIniter, err := c.Registry.GetResourceDiffIniter(gvk)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	diff, err := diffIniter(mg, created)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	if diff.DifferentAtProvider() {
+		merged, err := diff.Merged()
+		if err != nil {
+			return managed.ExternalCreation{}, err
+		}
+		if err := c.KubeClient.Update(ctx, merged); err != nil {
+			return managed.ExternalCreation{}, err
+		}
 	}
 
 	return managed.ExternalCreation{}, nil

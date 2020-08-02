@@ -20,7 +20,7 @@ func Create(p *client.Provider, r *registry.Registry, res resource.Managed) (res
 	//
 	// traverse provider schema and
 	gvk := res.GetObjectKind().GroupVersionKind()
-	s, err := SchemaForGVK(gvk, p)
+	s, err := SchemaForGVK(gvk, p, r)
 	if err != nil {
 		return nil, err
 	}
