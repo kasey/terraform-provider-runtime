@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/crossplane/provider-terraform-plugin/pkg/client"
+	"github.com/crossplane/terraform-provider-runtime/pkg/client"
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )

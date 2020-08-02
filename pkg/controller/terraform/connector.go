@@ -7,8 +7,8 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/crossplane/provider-terraform-plugin/pkg/client"
-	"github.com/crossplane/provider-terraform-plugin/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/client"
+	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

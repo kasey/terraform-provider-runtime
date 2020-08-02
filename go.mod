@@ -1,4 +1,4 @@
-module github.com/crossplane/provider-terraform-plugin
+module github.com/crossplane/terraform-provider-runtime
 
 go 1.13
 

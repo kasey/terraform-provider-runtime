@@ -6,7 +6,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	xpresource "github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/crossplane/provider-terraform-plugin/pkg/client"
+	"github.com/crossplane/terraform-provider-runtime/pkg/client"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 	k8schema "k8s.io/apimachinery/pkg/runtime/schema"

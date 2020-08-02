@@ -3,7 +3,7 @@ SHELL := /bin/bash
 
 # Options
 ORG_NAME=crossplane
-PROVIDER_NAME=provider-terraform-plugin
+PROVIDER_NAME=terraform-provider-runtime
 
 # Package setup
 PACKAGE=package

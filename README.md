@@ -1,12 +1,12 @@
-# provider-terraform-plugin
+# terraform-provider-runtime
 
 
-`provider-terraform-plugin` specifies a set of interfaces and dependency injection points for a code-generated provider to use to offer CRUD
+`terraform-provider-runtime` specifies a set of interfaces and dependency injection points for a code-generated provider to use to offer CRUD
 methods to fulfill the crossplane ExternalClient API.
 
 ## Install
 
-If you would like to install `provider-terraform-plugin` without modifications create
+If you would like to install `terraform-provider-runtime` without modifications create
 the following `ClusterPackageInstall` in a Kubernetes cluster where Crossplane is
 installed:
 
@@ -19,10 +19,10 @@ metadata:
 apiVersion: packages.crossplane.io/v1alpha1
 kind: ClusterPackageInstall
 metadata:
-  name: provider-terraform-plugin
+  name: terraform-provider-runtime
   namespace: terraform-plugin
 spec:
-  package: "crossplane/provider-terraform-plugin:latest"
+  package: "crossplane/terraform-provider-runtime:latest"
 ```
 
 ## Developing
