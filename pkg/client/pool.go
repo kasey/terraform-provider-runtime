@@ -13,12 +13,13 @@ type ProviderPool struct {
 	providers          []*Provider
 	reverseMap         map[*Provider]int
 	initializeProvider Initializer
+	runtimeOptions     *RuntimeOptions
 }
 
 func (pp *ProviderPool) Borrow(ctx context.Context, res resource.Managed, kube kubeclient.Client) (*Provider, error) {
 	index := <-pp.indexFifo
 	if pp.providers[index] == nil {
-		provider, err := pp.initializeProvider(ctx, res, kube)
+		provider, err := pp.initializeProvider(ctx, res, pp.runtimeOptions, kube)
 		if err != nil {
 			pp.indexFifo <- index
 			return provider, err
@@ -34,13 +35,15 @@ func (pp *ProviderPool) Return(p *Provider) {
 	pp.indexFifo <- index
 }
 
-func NewProviderPool(initializer Initializer, size int) *ProviderPool {
+func NewProviderPool(initializer Initializer, ropts *RuntimeOptions) *ProviderPool {
+	size := ropts.PoolSize
 	pool := &ProviderPool{
 		size:               size,
 		indexFifo:          make(chan int, size),
 		providers:          make([]*Provider, size, size),
 		reverseMap:         make(map[*Provider]int),
 		initializeProvider: initializer,
+		runtimeOptions:     ropts,
 	}
 	for i := 0; i < size; i++ {
 		pool.indexFifo <- i

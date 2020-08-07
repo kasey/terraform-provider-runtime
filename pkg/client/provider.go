@@ -17,12 +17,6 @@ import (
 // TODO: is there a more sane way to negotiate version compat w/ providers?
 const FakeTerraformVersion string = "v0.12.26"
 
-// VeryBadHardcodedPluginDirectory simplifies plugin directory discovery by assuming
-// that we'll eventually just have a single canonical location for plugins, maybe w/ a flag to override
-// This will get replaced by some reasonable default that will always be used in docker containers
-// with the explicit value only being specified for dev builds outside of containers.
-const VeryBadHardcodedPluginDirectory string = "/Users/kasey/src/crossplane/hiveworld/.terraform/plugins/darwin_amd64/"
-
 // Provider wraps grpcProvider with some additional metadata like the provider name
 type Provider struct {
 	GRPCProvider *tfplugin.GRPCProvider
@@ -93,8 +87,8 @@ func ReadProviderConfigFile(path string) (ProviderConfig, error) {
 // NewProvider constructs a Provider, which is a container type, holding a
 // terraform provider plugin grpc client, as well as metadata about this provider
 // instance, eg its configuration and type.
-func NewProvider(providerName string, cfg map[string]cty.Value) (*Provider, error) {
-	grpc, err := NewGRPCProvider(providerName, VeryBadHardcodedPluginDirectory)
+func NewProvider(providerName string, pluginDir string, cfg map[string]cty.Value) (*Provider, error) {
+	grpc, err := NewGRPCProvider(providerName, pluginDir)
 	if err != nil {
 		return nil, err
 	}
@@ -115,4 +109,31 @@ func GetProviderSchema(p *Provider) (*configschema.Block, error) {
 	return resp.Provider.Block, nil
 }
 
-type Initializer func(context.Context, resource.Managed, kubeclient.Client) (*Provider, error)
+type Initializer func(context.Context, resource.Managed, *RuntimeOptions, kubeclient.Client) (*Provider, error)
+
+var DefaultProviderPoolSize = 5
+
+type RuntimeOptions struct {
+	PoolSize        int
+	PluginDirectory string
+}
+
+var DefaultPluginDirectory string = "/Users/kasey/src/crossplane/provider-terraform-gcp/.terraform/plugins/darwin_amd64/"
+
+func (ro *RuntimeOptions) GetPluginDirectory() string {
+	return DefaultPluginDirectory
+}
+
+func (ro *RuntimeOptions) WithPluginDirectory(dir string) *RuntimeOptions {
+	ro.PluginDirectory = dir
+	return ro
+}
+
+func (ro *RuntimeOptions) WithPoolSize(size int) *RuntimeOptions {
+	ro.PoolSize = size
+	return ro
+}
+
+func NewRuntimeOptions() *RuntimeOptions {
+	return &RuntimeOptions{}
+}

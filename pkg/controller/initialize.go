@@ -26,9 +26,7 @@ import (
 	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
 )
 
-var DefaultProviderPoolSize = 5
-
-func StartTerraformManager(r *registry.Registry, opts ctrl.Options, log logging.Logger) error {
+func StartTerraformManager(r *registry.Registry, opts ctrl.Options, ropts *client.RuntimeOptions, log logging.Logger) error {
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
 		return errors.Wrap(err, "Cannot get API server rest config")
@@ -57,7 +55,7 @@ func StartTerraformManager(r *registry.Registry, opts ctrl.Options, log logging.
 		return errors.Wrap(err, "Failed to get ProviderEntry from StartTerraformManager")
 	}
 	p.SchemeBuilder.AddToScheme(mgr.GetScheme())
-	pool := client.NewProviderPool(p.Initializer, DefaultProviderPoolSize)
+	pool := client.NewProviderPool(p.Initializer, ropts)
 	for _, configure := range r.GetReconcilerConfigurers() {
 		if err := configure(mgr, log, r, pool); err != nil {
 			return err
