@@ -3,35 +3,27 @@ package api
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/terraform-provider-runtime/pkg/client"
-	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/plugin"
 	"github.com/hashicorp/terraform/providers"
 )
 
 // Update syncs with an existing resource and modifies mutable values
-func Update(p *client.Provider, r *registry.Registry, res resource.Managed) (resource.Managed, error) {
-	gvk := res.GetObjectKind().GroupVersionKind()
-	s, err := SchemaForGVK(gvk, p, r)
+func Update(p *client.Provider, inv *plugin.Invoker, res resource.Managed) (resource.Managed, error) {
+	s, err := SchemaForInvoker(p, inv)
 	if err != nil {
 		return nil, err
 	}
-	ctyEncoder, err := r.GetCtyEncoder(gvk)
+	encoded, err := inv.EncodeCty(res, s)
 	if err != nil {
 		return nil, err
 	}
-	encoded, err := ctyEncoder(res, s)
-	if err != nil {
-		return nil, err
-	}
-	tfName, err := r.GetTerraformNameForGVK(gvk)
-	if err != nil {
-		return nil, err
-	}
+	tfName := inv.TerraformResourceName()
 
-	prior, err := Read(p, r, res)
+	prior, err := Read(p, inv, res)
 	if err != nil {
 		return nil, err
 	}
-	priorEncoded, err := ctyEncoder(prior, s)
+	priorEncoded, err := inv.EncodeCty(prior, s)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +42,6 @@ func Update(p *client.Provider, r *registry.Registry, res resource.Managed) (res
 	if resp.Diagnostics.HasErrors() {
 		return res, resp.Diagnostics.NonFatalErr()
 	}
-	ctyDecoder, err := r.GetCtyDecoder(gvk)
-	if err != nil {
-		return nil, err
-	}
-	return ctyDecoder(res, resp.NewState, s)
+
+	return inv.DecodeCty(res, resp.NewState, s)
 }

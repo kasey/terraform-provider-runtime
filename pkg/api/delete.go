@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/terraform-provider-runtime/pkg/client"
-	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/plugin"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -11,31 +11,20 @@ import (
 // Delete deletes the given resource from the provider
 // In terraform slang this is expressed as asking the provider
 // to act on a Nil planned state.
-func Delete(p *client.Provider, r *registry.Registry, res resource.Managed) error {
-	gvk := res.GetObjectKind().GroupVersionKind()
-	s, err := SchemaForGVK(gvk, p, r)
+func Delete(p *client.Provider, inv *plugin.Invoker, res resource.Managed) error {
+	s, err := SchemaForInvoker(p, inv)
 	if err != nil {
 		return err
 	}
-	ctyEncoder, err := r.GetCtyEncoder(gvk)
-	if err != nil {
-		return err
-	}
-	encoded, err := ctyEncoder(res, s)
-	if err != nil {
-		return err
-	}
-	tfName, err := r.GetTerraformNameForGVK(gvk)
+	encoded, err := inv.EncodeCty(res, s)
 	if err != nil {
 		return err
 	}
 
-	// TODO: research how/if the major providers are using Config
-	// same goes for the private state blobs that are shuffled around
 	req := providers.ApplyResourceChangeRequest{
-		TypeName:   tfName,
+		TypeName:   inv.TerraformResourceName(),
 		PriorState: encoded,
-		// TODO: For the purposes of Create, I am assuming that it's fine for
+		// TODO: For the purposes of Delete, I am assuming that it's fine for
 		// Config and PlannedState to be the same
 		Config:       cty.NullVal(s.Block.ImpliedType()),
 		PlannedState: cty.NullVal(s.Block.ImpliedType()),

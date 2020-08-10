@@ -27,7 +27,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/terraform-provider-runtime/pkg/api"
 	"github.com/crossplane/terraform-provider-runtime/pkg/client"
-	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/plugin"
 )
 
 const (
@@ -41,20 +41,21 @@ const (
 
 type External struct {
 	KubeClient kubeclient.Client
-	Registry   *registry.Registry
+	Invoker    *plugin.Invoker
 	Callbacks  managed.ExternalClientFns
 	logger     logging.Logger
 	provider   *client.Provider
 }
 
-func (c *External) Observe(ctx context.Context, kres resource.Managed) (managed.ExternalObservation, error) {
-	gvk := kres.GetObjectKind().GroupVersionKind()
+func (c *External) Observe(ctx context.Context, res resource.Managed) (managed.ExternalObservation, error) {
+	c.entryLog(res, "Observe")
+	gvk := res.GetObjectKind().GroupVersionKind()
 	c.logger.Debug(fmt.Sprintf("terraform.External.Observe: %s", gvk.String()))
 	if c.Callbacks.ObserveFn != nil {
-		return c.Callbacks.Observe(ctx, kres)
+		return c.Callbacks.Observe(ctx, res)
 	}
 
-	ares, err := api.Read(c.provider, c.Registry, kres)
+	ares, err := api.Read(c.provider, c.Invoker, res)
 	if err != nil {
 		if err == api.ErrNotFound {
 			return managed.ExternalObservation{}, nil
@@ -62,88 +63,79 @@ func (c *External) Observe(ctx context.Context, kres resource.Managed) (managed.
 		return managed.ExternalObservation{}, err
 	}
 
-	diffIniter, err := c.Registry.GetResourceDiffIniter(gvk)
+	description, err := c.Invoker.MergeResources(res, ares)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
-	diff, err := diffIniter(kres, ares)
-	if err != nil {
-		return managed.ExternalObservation{}, err
-	}
-	/*
-		if diff.DifferentAtProvider() {
-			merged, err := diff.Merged()
-			if err != nil {
-				return managed.ExternalObservation{}, err
-			}
-			if err := c.KubeClient.Update(ctx, merged); err != nil {
-				return managed.ExternalObservation{}, err
-			}
+	if description.AnnotationsUpdated || description.LateInitializedSpec {
+		if err := c.KubeClient.Update(ctx, res); err != nil {
+			return managed.ExternalObservation{}, err
 		}
-	*/
+	}
 
 	return managed.ExternalObservation{
 		ResourceExists:   true,
-		ResourceUpToDate: diff.DifferentForProvider(),
+		ResourceUpToDate: !description.NeedsProviderUpdate,
 		// ConnectionDetails: getConnectionDetails(cr, instance),
 	}, nil
 }
 
-func (c *External) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	gvk := mg.GetObjectKind().GroupVersionKind()
-	c.logger.Debug(fmt.Sprintf("terraform.External.Create: %s", gvk.String()))
+func (c *External) Create(ctx context.Context, res resource.Managed) (managed.ExternalCreation, error) {
+	c.entryLog(res, "Create")
 	if c.Callbacks.CreateFn != nil {
-		return c.Callbacks.Create(ctx, mg)
+		return c.Callbacks.Create(ctx, res)
 	}
 
-	created, err := api.Create(c.provider, c.Registry, mg)
+	created, err := api.Create(c.provider, c.Invoker, res)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 
-	/*
-		if err := c.KubeClient.Update(ctx, created); err != nil {
-			return managed.ExternalCreation{}, err
-		}
-	*/
-
-	diffIniter, err := c.Registry.GetResourceDiffIniter(gvk)
+	description, err := c.Invoker.MergeResources(res, created)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	diff, err := diffIniter(mg, created)
-	if err != nil {
-		return managed.ExternalCreation{}, err
-	}
-	if diff.DifferentAtProvider() {
-		merged, err := diff.Merged()
-		if err != nil {
-			return managed.ExternalCreation{}, err
-		}
-		if err := c.KubeClient.Update(ctx, merged); err != nil {
+	if description.AnnotationsUpdated {
+		if err = c.KubeClient.Update(ctx, res); err != nil {
 			return managed.ExternalCreation{}, err
 		}
 	}
-
 	return managed.ExternalCreation{}, nil
 }
 
-func (c *External) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	gvk := mg.GetObjectKind().GroupVersionKind()
-	c.logger.Debug(fmt.Sprintf("terraform.External.Update: %s", gvk.String()))
+func (c *External) Update(ctx context.Context, res resource.Managed) (managed.ExternalUpdate, error) {
+	c.entryLog(res, "Update")
 	if c.Callbacks.UpdateFn != nil {
-		return c.Callbacks.Update(ctx, mg)
+		return c.Callbacks.Update(ctx, res)
+	}
+
+	updated, err := api.Update(c.provider, c.Invoker, res)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	description, err := c.Invoker.MergeResources(res, updated)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	if description.AnnotationsUpdated || description.LateInitializedSpec {
+		if err := c.KubeClient.Update(ctx, res); err != nil {
+			return managed.ExternalUpdate{}, err
+		}
 	}
 
 	return managed.ExternalUpdate{}, nil
 }
 
-func (c *External) Delete(ctx context.Context, mg resource.Managed) error {
-	gvk := mg.GetObjectKind().GroupVersionKind()
-	c.logger.Debug(fmt.Sprintf("terraform.External.Delete: %s", gvk.String()))
+func (c *External) Delete(ctx context.Context, res resource.Managed) error {
+	c.entryLog(res, "Delete")
 	if c.Callbacks.DeleteFn != nil {
-		return c.Callbacks.Delete(ctx, mg)
+		return c.Callbacks.Delete(ctx, res)
 	}
 
-	return nil
+	return api.Delete(c.provider, c.Invoker, res)
+}
+
+func (c *External) entryLog(res resource.Managed, method string) {
+	gvk := res.GetObjectKind().GroupVersionKind()
+	c.logger.Debug(fmt.Sprintf("terraform.External.%s: %s", method, gvk.String()))
 }

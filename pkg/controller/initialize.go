@@ -23,10 +23,11 @@ import (
 
 	crossplaneapis "github.com/crossplane/crossplane/apis"
 	"github.com/crossplane/terraform-provider-runtime/pkg/client"
-	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/plugin"
 )
 
-func StartTerraformManager(r *registry.Registry, opts ctrl.Options, ropts *client.RuntimeOptions, log logging.Logger) error {
+//func StartTerraformManager(r *registry.Registry, opts ctrl.Options, ropts *client.RuntimeOptions, log logging.Logger) error {
+func StartTerraformManager(idx *plugin.Index, p *plugin.ProviderInit, opts ctrl.Options, ropts *client.RuntimeOptions, log logging.Logger) error {
 	cfg, err := ctrl.GetConfig()
 	if err != nil {
 		return errors.Wrap(err, "Cannot get API server rest config")
@@ -45,19 +46,15 @@ func StartTerraformManager(r *registry.Registry, opts ctrl.Options, ropts *clien
 			return errors.Wrap(err, "Cannot add Template APIs to scheme")
 		}
 	*/
-	for _, sb := range r.GetSchemeBuilders() {
+	for _, sb := range idx.SchemeBuilders() {
 		if err := sb.AddToScheme(mgr.GetScheme()); err != nil {
 			return err
 		}
 	}
-	p, err := r.GetProviderEntry()
-	if err != nil {
-		return errors.Wrap(err, "Failed to get ProviderEntry from StartTerraformManager")
-	}
 	p.SchemeBuilder.AddToScheme(mgr.GetScheme())
 	pool := client.NewProviderPool(p.Initializer, ropts)
-	for _, configure := range r.GetReconcilerConfigurers() {
-		if err := configure(mgr, log, r, pool); err != nil {
+	for _, rc := range idx.ReconcilerConfigurers() {
+		if err := rc.ConfigureReconciler(mgr, log, idx, pool); err != nil {
 			return err
 		}
 	}

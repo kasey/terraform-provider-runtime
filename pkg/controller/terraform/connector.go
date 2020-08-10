@@ -8,7 +8,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane/terraform-provider-runtime/pkg/client"
-	"github.com/crossplane/terraform-provider-runtime/pkg/registry"
+	"github.com/crossplane/terraform-provider-runtime/pkg/plugin"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,10 +19,10 @@ const (
 
 // TODO: make New func and take Logger private (maybe?)
 type Connector struct {
-	KubeClient kubeclient.Client
-	Registry   *registry.Registry
-	Logger     logging.Logger
-	Pool       *client.ProviderPool
+	KubeClient  kubeclient.Client
+	PluginIndex *plugin.Index
+	Logger      logging.Logger
+	Pool        *client.ProviderPool
 }
 
 func (c *Connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
@@ -33,7 +33,6 @@ func (c *Connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	if err != nil {
 		return &External{}, err
 	}
-
 	// The context passed in from the Reconciler is marked Done at the end of the Reconcile loop.
 	// We bank on that fact to schedule the provider lock for cleanup once its work is done.
 	go func() {
@@ -47,6 +46,10 @@ func (c *Connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		}
 		c.Pool.Return(provider)
 	}()
+	api, err := c.PluginIndex.APIForGVK(gvk)
+	if err != nil {
+		return &External{}, err
+	}
 
-	return &External{KubeClient: c.KubeClient, Registry: c.Registry, logger: c.Logger, provider: provider}, nil
+	return &External{KubeClient: c.KubeClient, Invoker: api, logger: c.Logger, provider: provider}, nil
 }
