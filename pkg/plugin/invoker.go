@@ -11,7 +11,7 @@ import (
 )
 
 type Invoker struct {
-	ft FuncTable
+	ft Implementation
 }
 
 func (a *Invoker) GVK() k8schema.GroupVersionKind {

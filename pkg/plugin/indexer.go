@@ -8,14 +8,14 @@ import (
 )
 
 type Indexer struct {
-	gvkIndex map[k8schema.GroupVersionKind]*MergeTable
+	gvkIndex map[k8schema.GroupVersionKind]*ImplementationMerger
 }
 
 func NewIndexer() *Indexer {
-	return &Indexer{gvkIndex: make(map[k8schema.GroupVersionKind]*MergeTable)}
+	return &Indexer{gvkIndex: make(map[k8schema.GroupVersionKind]*ImplementationMerger)}
 }
 
-func (i *Indexer) IndexFuncTable(ft *FuncTable) error {
+func (i *Indexer) Overlay(ft *Implementation) error {
 	if ft.GVK.Empty() {
 		return fmt.Errorf("nil value for functable GVK")
 	}
@@ -30,7 +30,7 @@ func (i *Indexer) BuildIndex() (*Index, error) {
 	idx := &Index{
 		reconcilerConfigurers: make([]ReconcilerConfigurer, 0),
 		schemeBuilders:        make([]*scheme.Builder, 0),
-		ftMap:                 make(map[k8schema.GroupVersionKind]FuncTable),
+		ftMap:                 make(map[k8schema.GroupVersionKind]Implementation),
 		gvkToTFName:           make(map[k8schema.GroupVersionKind]string),
 		tfNameToGVK:           make(map[string]k8schema.GroupVersionKind),
 	}
@@ -49,7 +49,7 @@ func (i *Indexer) BuildIndex() (*Index, error) {
 }
 
 type Index struct {
-	ftMap                 map[k8schema.GroupVersionKind]FuncTable
+	ftMap                 map[k8schema.GroupVersionKind]Implementation
 	reconcilerConfigurers []ReconcilerConfigurer
 	schemeBuilders        []*scheme.Builder
 	gvkToTFName           map[k8schema.GroupVersionKind]string
@@ -64,7 +64,7 @@ func (idx *Index) SchemeBuilders() []*scheme.Builder {
 	return idx.schemeBuilders
 }
 
-func (idx *Index) APIForGVK(gvk k8schema.GroupVersionKind) (*Invoker, error) {
+func (idx *Index) InvokerForGVK(gvk k8schema.GroupVersionKind) (*Invoker, error) {
 	ft, ok := idx.ftMap[gvk]
 	if !ok {
 		return &Invoker{}, fmt.Errorf("Could not look up functable for gvk=%s", gvk.String())

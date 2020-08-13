@@ -17,26 +17,26 @@ func gvkFixture() k8schema.GroupVersionKind {
 
 func TestIndexerAddThenLookup(t *testing.T) {
 	idxr := NewIndexer()
-	err := idxr.IndexFuncTable(&FuncTable{})
+	err := idxr.Overlay(&Implementation{})
 	if err == nil {
 		t.Errorf("Expected error when attempting to index a functable with no gvk")
 	}
 	gvk := gvkFixture()
-	f := &FuncTable{
+	f := &Implementation{
 		GVK: gvk,
 	}
-	err = idxr.IndexFuncTable(f)
+	err = idxr.Overlay(f)
 	if err != nil {
-		t.Errorf("Unexpected error calling IndexFuncTable with gvk=%s", gvk.String())
+		t.Errorf("Unexpected error calling Overlay with gvk=%s", gvk.String())
 	}
 
 	ix, err := idxr.BuildIndex()
 	if err != nil {
-		t.Errorf("Unexpected error calling IndexFuncTable with gvk=%s", gvk.String())
+		t.Errorf("Unexpected error calling BuildIndex with gvk=%s", gvk.String())
 	}
-	_, err = ix.APIForGVK(gvk)
+	_, err = ix.InvokerForGVK(gvk)
 	if err != nil {
-		t.Errorf("Unexpected error calling APIForGVK with gvk=%s", gvk.String())
+		t.Errorf("Unexpected error calling InvokerForGVK with gvk=%s", gvk.String())
 	}
 }
 
@@ -60,22 +60,22 @@ func TestIndexerLayerMerging(t *testing.T) {
 	idxr := NewIndexer()
 
 	gvk := gvkFixture()
-	f1 := &FuncTable{
+	f1 := &Implementation{
 		GVK:                    gvk,
 		CtyDecoder:             &mockCtyDecoder{"f1"},
 		ResourceYAMLMarshaller: &mockYAMLMarshaller{"f1"},
 	}
-	f2 := &FuncTable{
+	f2 := &Implementation{
 		GVK:        gvk,
 		CtyDecoder: &mockCtyDecoder{"f2"},
 	}
-	idxr.IndexFuncTable(f1)
-	idxr.IndexFuncTable(f2)
+	idxr.Overlay(f1)
+	idxr.Overlay(f2)
 	ix, err := idxr.BuildIndex()
 	if err != nil {
 		t.Errorf("Unexpected error calling Indexer.BuildIndex(), err=%s", err.Error())
 	}
-	api, err := ix.APIForGVK(gvk)
+	api, err := ix.InvokerForGVK(gvk)
 	if err != nil {
 		t.Errorf("Unexpected error calling Index.APIforGVK(), err=%s", err.Error())
 	}

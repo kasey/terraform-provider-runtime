@@ -46,10 +46,10 @@ func (c *Connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		}
 		c.Pool.Return(provider)
 	}()
-	api, err := c.PluginIndex.APIForGVK(gvk)
+	invoker, err := c.PluginIndex.InvokerForGVK(gvk)
 	if err != nil {
 		return &External{}, err
 	}
 
-	return &External{KubeClient: c.KubeClient, Invoker: api, logger: c.Logger, provider: provider}, nil
+	return &External{KubeClient: c.KubeClient, Invoker: invoker, logger: c.Logger, provider: provider}, nil
 }

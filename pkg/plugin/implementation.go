@@ -5,22 +5,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-// A MergeTable holds a sequence of FuncTables, looks through its FuncTables
-// in order and selects the first implementation.
-type MergeTable struct {
-	layers []*FuncTable
+// An ImplementationMerger collects a sequence of Implementations
+// through the Overlay method, and then can generate a single Implementation
+// which is the result of merging all the layers into a single Implementation.
+// It does this by picking a non-nil value for each field
+// from the highest possible layer. Please see indexer_test.go for clarification.
+type ImplementationMerger struct {
+	layers []*Implementation
 }
 
-// Merge flattens all the layers in the MergeTable, with the invariant:
+// Merge flattens all the layers in the ImplementationMerger, with the invariant:
 // a layers' non-empty fields always replace underlying layers' fields.
 // So last field Overlayed wins, eg call Overlay w/ the generated base
-// FuncTable before the user-override FuncTables.
+// Implementation before the user-override Implementations.
 // I don't know if we really need an error; if we can assume generated
-// FuncTables cover everything, we don't.
+// Implementations cover everything, we don't.
 // if that turns out to be a bad assumption, the error would give us
 // an escape hatch to fail on incomplete implementations at runtime.
-func (mt *MergeTable) Merge() (FuncTable, error) {
-	merged := FuncTable{}
+func (mt *ImplementationMerger) Merge() (Implementation, error) {
+	merged := Implementation{}
 	for _, ft := range mt.layers {
 		if !ft.GVK.Empty() {
 			merged.GVK = ft.GVK
@@ -53,19 +56,19 @@ func (mt *MergeTable) Merge() (FuncTable, error) {
 	return merged, nil
 }
 
-func (mt *MergeTable) Overlay(ft *FuncTable) {
+func (mt *ImplementationMerger) Overlay(ft *Implementation) {
 	mt.layers = append(mt.layers, ft)
 }
 
-func NewMergeTable() *MergeTable {
-	return &MergeTable{
-		layers: make([]*FuncTable, 0),
+func NewMergeTable() *ImplementationMerger {
+	return &ImplementationMerger{
+		layers: make([]*Implementation, 0),
 	}
 }
 
-// FuncTable is a collection of callbacks required to implement a resource
-// There can be multiple FuncTables for a resource, with
-type FuncTable struct {
+// Implementation is a collection of callbacks required to implement a resource
+// There can be multiple Implementations for a resource, with
+type Implementation struct {
 	// GVK is used to index other elements of the Entry by GVK
 	GVK k8schema.GroupVersionKind
 	// TerraformResourceName is needed to map the crossplane type
