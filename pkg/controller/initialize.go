@@ -40,12 +40,6 @@ func StartTerraformManager(idx *plugin.Index, p *plugin.ProviderInit, opts ctrl.
 	if err != nil {
 		return errors.Wrap(err, "Cannot add core Crossplane APIs to scheme")
 	}
-	/*
-		err = apis.AddToScheme(mgr.GetScheme())
-		if err != nil {
-			return errors.Wrap(err, "Cannot add Template APIs to scheme")
-		}
-	*/
 	for _, sb := range idx.SchemeBuilders() {
 		if err := sb.AddToScheme(mgr.GetScheme()); err != nil {
 			return err

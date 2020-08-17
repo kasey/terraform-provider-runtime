@@ -20,7 +20,7 @@ func (i *Indexer) Overlay(ft *Implementation) error {
 		return fmt.Errorf("nil value for functable GVK")
 	}
 	if _, ok := i.gvkIndex[ft.GVK]; !ok {
-		i.gvkIndex[ft.GVK] = NewMergeTable()
+		i.gvkIndex[ft.GVK] = NewImplementationMerger()
 	}
 	i.gvkIndex[ft.GVK].Overlay(ft)
 	return nil

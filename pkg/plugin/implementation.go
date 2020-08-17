@@ -60,7 +60,7 @@ func (mt *ImplementationMerger) Overlay(ft *Implementation) {
 	mt.layers = append(mt.layers, ft)
 }
 
-func NewMergeTable() *ImplementationMerger {
+func NewImplementationMerger() *ImplementationMerger {
 	return &ImplementationMerger{
 		layers: make([]*Implementation, 0),
 	}
