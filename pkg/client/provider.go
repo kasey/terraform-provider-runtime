@@ -15,7 +15,7 @@ import (
 
 // FakeTerraformVersion is a nice lie we tell to providers to keep them happy
 // TODO: is there a more sane way to negotiate version compat w/ providers?
-const FakeTerraformVersion string = "v0.12.26"
+const FakeTerraformVersion string = "v0.13.5"
 
 // Provider wraps grpcProvider with some additional metadata like the provider name
 type Provider struct {
@@ -32,32 +32,39 @@ type ProviderConfig struct {
 // Configure calls the provider's grpc configuration interface,
 // also translating the ProviderConfig structure to the
 // Provider's encoded HCL representation.
-func (p *Provider) Configure(cfg map[string]cty.Value) error {
-	schema, err := GetProviderSchema(p)
-	if err != nil {
-		return err
-	}
-	// TODO: does not address nested blocks in the config
-	for key, attr := range schema.Attributes {
-		if _, ok := cfg[key]; !ok {
-			switch attr.Type.FriendlyName() {
-			case "string":
-				cfg[key] = cty.NullVal(cty.String)
-				continue
-			case "bool":
-				cfg[key] = cty.NullVal(cty.Bool)
-				continue
-			case "list of string":
-				cfg[key] = cty.ListValEmpty(cty.String)
-			default:
-				cfg[key] = cty.NullVal(cty.EmptyObject)
+//func (p *Provider) Configure(cfg map[string]cty.Value) error {
+func (p *Provider) Configure(cfg cty.Value) error {
+	/*
+		schema, err := GetProviderSchema(p)
+		if err != nil {
+			return err
+		}
+		// TODO: does not address nested blocks in the config
+		for key, attr := range schema.Attributes {
+			if _, ok := cfg[key]; !ok {
+				switch attr.Type.FriendlyName() {
+				case "string":
+					cfg[key] = cty.NullVal(cty.String)
+					continue
+				case "bool":
+					cfg[key] = cty.NullVal(cty.Bool)
+					continue
+				case "list of string":
+					cfg[key] = cty.ListValEmpty(cty.String)
+				default:
+					cfg[key] = cty.NullVal(cty.EmptyObject)
+				}
 			}
 		}
-	}
-	ctyCfg := cty.ObjectVal(cfg)
+		ctyCfg := cty.ObjectVal(cfg)
+		cfgReq := providers.ConfigureRequest{
+			TerraformVersion: FakeTerraformVersion,
+			Config:           ctyCfg,
+		}
+	*/
 	cfgReq := providers.ConfigureRequest{
 		TerraformVersion: FakeTerraformVersion,
-		Config:           ctyCfg,
+		Config:           cfg,
 	}
 	cfgResp := p.GRPCProvider.Configure(cfgReq)
 	if cfgResp.Diagnostics.HasErrors() {

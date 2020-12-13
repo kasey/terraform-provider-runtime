@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane-contrib/terraform-runtime/pkg/client"
 	"github.com/crossplane-contrib/terraform-runtime/pkg/plugin"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Update syncs with an existing resource and modifies mutable values
@@ -37,6 +38,7 @@ func Update(p *client.Provider, inv *plugin.Invoker, res resource.Managed) (reso
 		// Config and PlannedState to be the same
 		Config:       encoded,
 		PlannedState: encoded,
+		ProviderMeta: cty.NullVal(cty.DynamicPseudoType),
 	}
 	resp := p.GRPCProvider.ApplyResourceChange(req)
 	if resp.Diagnostics.HasErrors() {

@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/crossplane-contrib/terraform-runtime/pkg/client"
 	"github.com/crossplane-contrib/terraform-runtime/pkg/plugin"
+	"github.com/crossplane/crossplane-runtime/pkg/resource"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/pkg/errors"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var ErrNotFound = errors.New("Resource not found")
@@ -20,9 +21,10 @@ func Read(p *client.Provider, inv *plugin.Invoker, res resource.Managed) (resour
 	}
 	encoded, err := inv.EncodeCty(res, s)
 	req := providers.ReadResourceRequest{
-		TypeName:   inv.TerraformResourceName(),
-		PriorState: encoded,
-		Private:    nil,
+		TypeName:     inv.TerraformResourceName(),
+		PriorState:   encoded,
+		Private:      nil,
+		ProviderMeta: cty.NullVal(cty.DynamicPseudoType),
 	}
 	resp := p.GRPCProvider.ReadResource(req)
 	if resp.Diagnostics.HasErrors() {
